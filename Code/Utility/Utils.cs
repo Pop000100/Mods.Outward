@@ -1,5 +1,5 @@
 ﻿namespace Vheos.Mods.Outward;
-
+using static Main;
 internal static class Utils
 {
     public static IEnumerable<TemperatureSteps> TemperatureSteps
@@ -8,8 +8,8 @@ internal static class Utils
     => Utility.GetEnumValues<Character.Factions>().Skip(1).Reverse().Skip(1);
 
     public static string PluginFolderPath
-    => @"BepInEx\plugins\Vheos\";
-
+    => pluginInfo.Location.Replace("Vheos.Mods.Outward.dll", ""); // we don't need the file name just the path
+        
     public static Sprite CreateSpriteFromFile(string filePath)
     {
         if (System.IO.File.Exists(filePath))

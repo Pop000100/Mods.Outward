@@ -108,7 +108,7 @@ public class Quickslots : AMod
         if (!ControlsInput.QuickSlotToggle1(playerID) && !ControlsInput.QuickSlotToggle2(playerID))
             return;
 
-        int quickslotID = -1;
+        int quickslotID = Defaults.UnsetInteger;
         if (GameInput.Pressed(playerID, ControlsInput.GameplayActions.Sheathe))
             quickslotID = 8;
         else if (GameInput.Pressed(playerID, ControlsInput.MenuActions.ToggleMapMenu))

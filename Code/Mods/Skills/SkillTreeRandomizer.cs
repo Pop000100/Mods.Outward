@@ -480,7 +480,7 @@ public class SkillTreeRandomizer : AMod, IDelayedInit
             childObjects.DestroyInstantly();
             tree.m_skillSlots.Clear();
             tree.m_branches.Clear();
-            tree.m_breakthroughSkillIndex = -1;
+            tree.m_breakthroughSkillIndex = Defaults.UnsetInteger;
         }
     }
     private static void RandomizeSeed()

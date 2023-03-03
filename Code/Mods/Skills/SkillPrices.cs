@@ -50,7 +50,7 @@ public class SkillPrices : AMod
     
     protected override void Initialize()
     {
-        _originalValue = -1;
+        _originalValue = Defaults.UnsetInteger;
         _formulaToggle = CreateSetting(nameof(_formulaToggle), false);
         _formulaCoeffsByLevel = new Dictionary<SkillSlotLevel, ModSetting<Vector4>>();
         foreach (var level in Utility.GetEnumValues<SkillSlotLevel>())
@@ -163,7 +163,7 @@ public class SkillPrices : AMod
         CharacterInventory inventory = __instance.LocalCharacter.Inventory;
 
         // Defaults
-        tree.AlternateCurrecy = -1;
+        tree.AlternateCurrecy = Defaults.UnsetInteger;
         tree.AlternateCurrencyIcon = null;
         currencyIcon.overrideSprite = null;
         currencyIcon.rectTransform.pivot = 0.5f.ToVector2();
@@ -175,16 +175,17 @@ public class SkillPrices : AMod
         // Price
         if (_formulaToggle)
             slot.m_requiredMoney = GetPrice(__instance.LocalCharacter, slot);
-        
-        if (_originalValue < 0)
+
+        if (_originalValue == Defaults.UnsetInteger)
         {
             _originalValue = slot.m_requiredMoney;
         }
-        else
+        else 
         {
+            // reset to original price
             slot.m_requiredMoney = _originalValue;
         }
-            
+
         // Currency
         if (_learnMutuallyExclusiveSkills && HasMutuallyExclusiveSkill(__instance.LocalCharacter, slot))
             if (_exclusiveSkillCostsTsar)
@@ -200,7 +201,10 @@ public class SkillPrices : AMod
                 slot.m_requiredMoney = _exclusiveSkillRequirement.Amount;
             }
             else
+            {
                 slot.m_requiredMoney = (_originalValue * _exclusiveSkillCostMultiplier / 100f).Round();
+            }
+                
     }
 
     [HarmonyPrefix, HarmonyPatch(typeof(SkillSlot), nameof(SkillSlot.IsBlocked))]

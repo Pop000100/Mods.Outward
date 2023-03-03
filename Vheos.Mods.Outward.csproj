@@ -26,7 +26,8 @@
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'RELEASE_UNITY|AnyCPU' ">
     <OutputPath>bin\UNITY\</OutputPath>
-    <DocumentationFile>bin\UNITY\Vheos.Tools.Outward.xml</DocumentationFile>
+    <DocumentationFile>
+    </DocumentationFile>
     <DefineConstants>UNITY</DefineConstants>
   </PropertyGroup>
   <PropertyGroup>
@@ -95,8 +96,8 @@
     <Reference Include="Assembly-CSharp-firstpass, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Outward.GameLibs.2022.5.18-r.0\lib\net472\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
-    <Reference Include="BepInEx, Version=5.4.21.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\BepInEx.BaseLib.5.4.21\lib\net35\BepInEx.dll</HintPath>
+    <Reference Include="BepInEx, Version=5.4.19.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\BepInEx.BaseLib.5.4.19\lib\net35\BepInEx.dll</HintPath>
     </Reference>
     <Reference Include="MonoMod.RuntimeDetour, Version=22.7.31.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\MonoMod.RuntimeDetour.22.7.31.1\lib\net452\MonoMod.RuntimeDetour.dll</HintPath>

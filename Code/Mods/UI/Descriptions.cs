@@ -678,7 +678,13 @@ public class Descriptions : AMod, IDelayedInit
     private static void ItemDisplay_RefreshEnchantedIcon_Pre(ItemDisplay __instance)
     {
         #region quit
+        if (__instance.LocalCharacter == null)
+            return;
+
         if (!__instance.m_refItem.TryAs(out RecipeItem recipe))
+            return;
+
+        if (!__instance.LocalCharacter.HasLearnedRecipe(recipe.Recipe))
             return;
         #endregion
 
@@ -689,10 +695,6 @@ public class Descriptions : AMod, IDelayedInit
         //Defaults
         icon.color = Color.white;
         border.color = Color.white;
-
-        // Quit
-        if (!__instance.LocalCharacter.HasLearnedRecipe(recipe.Recipe))
-            return;
 
         // Custom
         icon.color = _learnedRecipeColor;

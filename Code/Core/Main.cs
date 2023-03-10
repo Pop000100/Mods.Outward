@@ -11,7 +11,8 @@ public class Main : BepInExEntryPoint
     // Metadata
     public const string GUID = "Vheos.Mods.Outward";
     public const string NAME = "VMP";
-    public const string VERSION = "2.0.7";
+    public const string VERSION = "2.0.8";
+    public static PluginInfo pluginInfo;
 
     // User logic
     protected override Assembly CurrentAssembly
@@ -22,6 +23,7 @@ public class Main : BepInExEntryPoint
         GameInput.Initialize();
         Log.Debug("Initializing Players...");
         Players.Initialize();
+        pluginInfo = Info;
     }
     protected override void DelayedInitialize()
     {

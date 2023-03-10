@@ -2,6 +2,7 @@
 
 public static class Defaults
 {
+    // Game Constants
     public const float FixedTimeDelta = 0.022f;
     public const float EnemyHealthResetTime = 24f;
     public const int ArmorTrainingPenaltyReduction = 50;
@@ -9,6 +10,9 @@ public static class Defaults
     public const int InnRentTime = 12;
     public const string InnQuestsFamilyName = "Inns";
     public const float HumanCollisionRadius = 0.4f;
+
+    // Common Constants
+    public const int UnsetInteger = -1;
 
     public static readonly AreaManager.AreaEnum[] Regions = new[]
 {

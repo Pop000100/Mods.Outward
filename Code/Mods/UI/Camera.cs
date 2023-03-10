@@ -8,6 +8,9 @@ public class Camera : AMod, IDelayedInit, IUpdatable
     private const float DEFAULT_FOLLOW_SPEED = 4.5f;
     private const float AIM_COROUTINE_UPDATE_SPEED = 0.2f;
     private const float AIM_COROUTINE_MARGIN = 0.01f;
+    private const float VANILLA_AIM_ZOOM_AMOUNT = 1f;
+    private const float VANILLA_AIM_ZOOM_SENSITIVITY = 0.25f;
+    private const float VHEOS_AIM_ZOOM_SENSITIVITY = 1f;
     #endregion
     #region Enums
     [Flags]
@@ -27,23 +30,26 @@ public class Camera : AMod, IDelayedInit, IUpdatable
         // Settings
         public ModSetting<bool> _toggle;
         public ModSetting<float> _zoomControlAmount;
+        public ModSetting<float> _aimZoomAmount;
+        public ModSetting<float> _aimSensitivity;
         public ModSetting<float> _zoomControlSpeed;
         public ModSetting<GamepadInputs> _gamepadInputs;
         public ModSetting<bool> _offsetToggle, _variousToggle;
         public ModSetting<Vector3> _offsetMin, _offsetAvg, _offsetMax;
         public ModSetting<Vector3> _variousMin, _variousAvg, _variousMax;
-
+        
         // Utility
         public void StartAimCoroutine(MonoBehaviour owner, bool isEnteringAimMode)
         {
             // Choose zoom in or out
-            float targetZoom = 0f;
-            Func<bool> test = () => _zoomControlAmount.Value < targetZoom + AIM_COROUTINE_MARGIN;
+            float targetZoom = isEnteringAimMode ? _aimZoomAmount : _cachedZoom ?? 0f;
+
+            Func<bool> test;
             if (isEnteringAimMode)
-            {
-                targetZoom = 1f;
-                test = () => _zoomControlAmount.Value > targetZoom - AIM_COROUTINE_MARGIN;
-            }
+                test = () => Mathf.Abs(_zoomControlAmount.Value) > Mathf.Abs(targetZoom) + AIM_COROUTINE_MARGIN;
+            else
+                test = () => Mathf.Abs(_zoomControlAmount.Value) < Mathf.Abs(targetZoom) + AIM_COROUTINE_MARGIN;
+            
 
             // Update over time
             if (_aimCoroutine != null)
@@ -69,6 +75,8 @@ public class Camera : AMod, IDelayedInit, IUpdatable
             set => _cachedSensitivity = value;
         }
         public bool IgnoreAxes;
+        public bool _leavingZoom;
+        public float? _cachedZoom = null;
         private float _cachedSensitivity;
         private Coroutine _aimCoroutine;
     }
@@ -86,6 +94,8 @@ public class Camera : AMod, IDelayedInit, IUpdatable
 
             tmp._toggle = CreateSetting(playerPrefix + nameof(tmp._toggle), false);
             tmp._zoomControlAmount = CreateSetting(playerPrefix + nameof(tmp._zoomControlAmount), 0f, FloatRange(-1f, 1f));
+            tmp._aimZoomAmount = CreateSetting(playerPrefix + nameof(tmp._aimZoomAmount), VANILLA_AIM_ZOOM_AMOUNT, FloatRange(-1f, 1.25f));
+            tmp._aimSensitivity = CreateSetting(playerPrefix + nameof(tmp._aimSensitivity), VANILLA_AIM_ZOOM_SENSITIVITY, FloatRange(-1f, 1.25f));
             tmp._zoomControlSpeed = CreateSetting(playerPrefix + nameof(tmp._zoomControlSpeed), 0.5f, FloatRange(0f, 1f));
             tmp._gamepadInputs = CreateSetting(playerPrefix + nameof(tmp._gamepadInputs), GamepadInputs.LeftQS | GamepadInputs.RightQS);
 
@@ -129,8 +139,15 @@ public class Camera : AMod, IDelayedInit, IUpdatable
             {
                 tmp._zoomControlAmount.Format("Zoom amount", tmp._toggle);
                 tmp._zoomControlAmount.Description = "-1  -  max zoom out\n" +
-                                                    "0  -  default zoom\n" +
-                                                    "+1  -  max zoom in";
+                                                     "0  -  default zoom\n" +
+                                                     "+1  -  max zoom in";
+                tmp._aimZoomAmount.Format("Aim zoom amount", tmp._toggle);
+                tmp._aimZoomAmount.Description =     "higher  -  zoom out\n" +
+                                                     "1  -  default zoom\n" +
+                                                     "lower  -  zoom in";
+                tmp._aimSensitivity.Format("Aim sensitivity", tmp._toggle);
+                tmp._aimSensitivity.Description =    "0.25  -  Vanilla Sensitivity\n" +
+                                                     "1     -  This is what Vheos used originally";
                 tmp._zoomControlSpeed.Format("Zoom control speed", tmp._toggle);
                 tmp._zoomControlSpeed.Description = "How quickly you want to zoom using mouse/gamepad\n" +
                     "Mouse: use mouse scroll wheel\n" +
@@ -185,6 +202,7 @@ public class Camera : AMod, IDelayedInit, IUpdatable
                     settings._toggle.Value = true;
                     {
                         settings._zoomControlAmount.Value = 0;
+                        settings._aimSensitivity.Value = VHEOS_AIM_ZOOM_SENSITIVITY;
                         settings._zoomControlSpeed.Value = 0.25f;
                         settings._gamepadInputs.Value = GamepadInputs.LeftQS | GamepadInputs.RightQS;
                         settings._offsetToggle.Value = true;
@@ -285,9 +303,46 @@ public class Camera : AMod, IDelayedInit, IUpdatable
         if (!_perPlayerSettings[player.ID]._toggle)
             return;
         #endregion
+        
+        __instance.CharacterCamera.ZoomSensModifier = _perPlayerSettings[player.ID]._aimSensitivity;
+        if (_zoomed)
+        {
+            _perPlayerSettings[player.ID]._cachedZoom = _perPlayerSettings[player.ID]._zoomControlAmount.Value;
+            _perPlayerSettings[player.ID].StartAimCoroutine(__instance, _zoomed);
+        }
 
-        __instance.CharacterCamera.ZoomSensModifier = 1f;
-        _perPlayerSettings[player.ID].StartAimCoroutine(__instance, _zoomed);
+    }
+
+    [HarmonyPrefix, HarmonyPatch(typeof(CharacterCamera), nameof(CharacterCamera.SetCameraMode))]
+    private static void CharacterCamera_SetCameraMode_Pre(CharacterCamera __instance, ref CharacterCamera.CameraModes _mode)
+    {
+        bool CameraGoingUnzoomed = __instance.m_currentViewMode == CharacterCamera.CameraModes.Zoom 
+            && _mode != CharacterCamera.CameraModes.Zoom;
+
+        if (!CameraGoingUnzoomed)
+            return;
+
+        Players.TryGetLocal(__instance, out Players.Data player);
+        bool playerValidTarget = player != null && _perPlayerSettings[player.ID]._toggle;
+        bool playerLeavingZoomUnset = !_perPlayerSettings[player.ID]._leavingZoom;
+        if (playerValidTarget && playerLeavingZoomUnset)
+        {
+            _perPlayerSettings[player.ID]._leavingZoom = true;
+        }
+    }
+
+    [HarmonyPostfix, HarmonyPatch(typeof(CharacterCamera), nameof(CharacterCamera.SetCameraMode))]
+    private static void CharacterCamera_SetCameraMode_Post(CharacterCamera __instance, ref CharacterCamera.CameraModes _mode)
+    {
+
+        Players.TryGetLocal(__instance, out Players.Data player);
+        bool playerValidTarget = player != null && _perPlayerSettings[player.ID]._toggle;
+        bool playerLeavingZoomSet = _perPlayerSettings[player.ID]._leavingZoom;
+        if (playerValidTarget && playerLeavingZoomSet)
+        {
+            _perPlayerSettings[player.ID]._leavingZoom = false;
+            _perPlayerSettings[player.ID].StartAimCoroutine(player.Character, false);
+        }
     }
 
     [HarmonyPrefix, HarmonyPatch(typeof(CharacterCamera), nameof(CharacterCamera.UpdateZoom))]
